@@ -1,102 +1,115 @@
+class User:
+    def __init__(self, name, address, contact):
+        self.name = name
+        self.address = address
+        self.contact = contact
+        self.account_balance = 0
+        self.transaction_history = []
+
+    def deposit(self, amount):
+        self.account_balance += amount
+        self.transaction_history.append(f"Deposit: +{amount}")
+
+    def withdraw(self, amount):
+        if self.account_balance >= amount:
+            self.account_balance -= amount
+            self.transaction_history.append(f"Withdrawal: -{amount}")
+        else:
+            print("Insufficient funds.")
+
+    def transfer(self, amount, recipient):
+        if self.account_balance >= amount:
+            self.account_balance -= amount
+            recipient.account_balance += amount
+            self.transaction_history.append(f"Transfer: -{amount} to {recipient.name}")
+            recipient.transaction_history.append(f"Transfer: +{amount} from {self.name}")
+        else:
+            print("Insufficient funds.")
+
+    def get_balance(self):
+        return self.account_balance
+
+    def get_transaction_history(self):
+        return self.transaction_history
+
+
+class Admin:
+    def __init__(self, bank):
+        self.bank = bank
+
+    def create_account(self, name, address, contact):
+        user = User(name, address, contact)
+        self.bank.users.append(user)
+        return user
+
+    def check_total_balance(self):
+        total_balance = sum(user.get_balance() for user in self.bank.users)
+        return total_balance
+
+    def check_total_loan_amount(self):
+        total_loan_amount = sum(user.get_balance() for user in self.bank.users if user.get_balance() > 0)
+        return total_loan_amount
+
+    def toggle_loan_feature(self, enabled):
+        self.bank.loan_feature_enabled = enabled
+
+
 class Bank:
     def __init__(self):
-        self.users = {}
-        self.total_balance = 0
-        self.total_loan_amount = 0
+        self.users = []
         self.loan_feature_enabled = True
 
-    def creact_account(self, user_id):
-        if user_id in self.users:
-            return "Account already exists."
-        self.users[user_id] = {
-            'balance': 0,
-            'transactions': []
-        }
-        return "Account created successfully."
-
-    def deposit(self, user_id, amount):
-        if user_id not in self.users:
-            return "Account does not exist."
-        self.users[user_id]['balance'] += amount
-        self.total_balance += amount
-        self.users[user_id]['transactions'].append(f"Deposited: {amount}")
-        return "Amount deposited successfully."
-
-    def withdraw(self, user_id, amount):
-        if user_id not in self.users:
-            return "Account does not exist."
-        if user_id in self.users and self.users[user_id]['balance'] >= amount:
-            self.users[user_id]['balance'] -= amount
-            self.total_balance -= amount
-            self.users[user_id]['transactions'].append(f"Withdrawn: {amount}")
-            return "Amount withdrawn successfully."
-        else:
-            return "Insufficient balance."
-
-    def check_balance(self, user_id):
-        if user_id not in self.users:
-            return "Account does not exist."
-        return f"Available balance: {self.users[user_id]['balance']}"
-
-    def transfer(self, sender_id, receiver_id, amount):
-        if sender_id not in self.users:
-            return "Sender account does not exist."
-        if receiver_id not in self.users:
-            return "Receiver account does not exist."
-        if self.users[sender_id]['balance'] >= amount:
-            self.users[sender_id]['balance'] -= amount
-            self.users[receiver_id]['balance'] += amount
-            self.users[sender_id]['transactions'].append(f"Transferred: {amount} to {receiver_id}")
-            self.users[receiver_id]['transactions'].append(f"Received: {amount} from {sender_id}")
-            return "Amount transferred successfully."
-        else:
-            return "Insufficient balance."
-
-    def check_transaction_history(self, user_id):
-        if user_id not in self.users:
-            return "Account does not exist."
-        return self.users[user_id]['transactions']
-
-    def take_loan(self, user_id):
-        if user_id not in self.users:
-            return "Account does not exist."
-        if self.loan_feature_enabled:
-            total_amount = self.users[user_id]['balance'] * 2
-            self.users[user_id]['balance'] += total_amount
-            self.total_loan_amount += total_amount
-            self.users[user_id]['transactions'].append(f"Loan taken: {total_amount}")
-            return f"Loan of {total_amount} granted."
-        else:
-            return "Loan feature is currently disabled."
-
-    def admin_check_total_balance(self):
-        return f"Total available balance of the bank: {self.total_balance}"
-
-    def admin_check_total_loan_amount(self):
-        return f"Total loan amount of the bank: {self.total_loan_amount}"
-
-    def admin_enable_loan_feature(self):
-        self.loan_feature_enabled = True
-        return "Loan feature enabled."
-
-    def admin_disable_loan_feature(self):
-        self.loan_feature_enabled = False
-        return "Loan feature disabled."
+    def is_bankrupt(self):
+        return sum(user.get_balance() for user in self.users) < 0
 
 
-# Example usage:
+# Usage example:
 bank = Bank()
+admin = Admin(bank)
 
-# User operations
-print(bank.creact_account("user1"))
-print(bank.deposit("user1", 1000))
-print(bank.withdraw("user1", 500))
-print(bank.check_balance("user1"))
-print(bank.transfer("user1", "user2", 200))
-print(bank.check_transaction_history("user1"))
-print(bank.take_loan("user1"))
+# Create accounts
+user1 = admin.create_account("rakib", "123 Main ra", "rakib@example.com")
+user2 = admin.create_account("rakib khan", "456 Elm ra", "rakib@.com")
 
-# Admin operations
-print(bank.admin_check_total_balance())
-print(bank.admin_check_total_loan_amount())
-print(bank.admin_disable_loan_feature())
+# Deposit money
+user1.deposit(500)
+user2.deposit(1000)
+
+# Withdraw money
+user1.withdraw(200)
+
+# Transfer money
+user1.transfer(100, user2)
+
+# Check balance
+balance = user1.get_balance()
+print(f"User1 balance: {balance}")
+
+# Check transaction history
+history = user1.get_transaction_history()
+print("User1 transaction history:")
+for transaction in history:
+    print(transaction)
+
+# Take a loan
+if bank.loan_feature_enabled:
+    user1.deposit(user1.get_balance())
+    balance = user1.get_balance()
+    print(f"User1 balance after loan: {balance}")
+else:
+    print("Loan feature is currently disabled.")
+
+# Check total bank balance
+total_balance = admin.check_total_balance()
+print(f"Total bank balance: {total_balance}")
+
+# Check total loan amount
+total_loan_amount = admin.check_total_loan_amount()
+print(f"Total loan amount: {total_loan_amount}")
+
+# Toggle loan feature
+admin.toggle_loan_feature(False)
+if bank.is_bankrupt():
+    print("The bank is bankrupt.")
+else:
+    print("The bank is still operational.")
